@@ -1,0 +1,21 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "console app that will send flight data to client.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "matan swisa",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/matanswisa/MonitorFlightDetailsServer/issues"
+  },
+  "homepage": "https://github.com/matanswisa/MonitorFlightDetailsServer#readme",
+  "dependencies": {
+    "socket.io": "^3.0.4"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.6"
+  }
+}
