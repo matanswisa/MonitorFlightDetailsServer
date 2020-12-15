@@ -1,5 +1,5 @@
 const express = require('express');
-const prompt = require('prompt-sync')({ sigint: true });
+const prompt = require('prompt');
 const pressAnyKey = require('press-any-key');
 const FlightCords = require('./classes/FlightCords');
 const app = express();
@@ -10,56 +10,75 @@ const server = http.createServer(app);
 const io = socketIo(server, {
     cors: {
         origin: '*',
+    },
+});
+
+var schema = {
+    properties: {
+        Altitude: {
+            conform: function(input) {
+                return input >= 0 && input <= 3000;
+            },
+            message: "Altitude must be in range of 0 to 3000",
+            required: true
+        },
+        HIS: {
+            conform: function(input) {
+                return input >= 0 && input <= 360;
+            },
+            message: "HIS must be in range of 0 to 360",
+            required: true
+        },
+        ADI: {
+            conform: function(input) {
+                return input >= -100 && input <= 100;
+            }, 
+            message: "ADI must be in range of -100 to 100",
+            required: true
+        }
+    }
+}; 
+
+prompt.start();
+
+const getFlightCordsByInput = (socket) => {
+    return new Promise((resolve, reject) => {
+        prompt.get(schema, function (err, result) {
+            if (err) {
+                console.log(err);
+                reject();
+            }
+            else {
+                resolve(new FlightCords(result.Altitude, result.HIS, result.ADI));
+            }
+        });
+    })
+}
+
+const pressAnyKeyToContinue = async () => {
+    console.log('Press any key');
+    process.stdin.setRawMode(true);
+    return new Promise(resolve => process.stdin.once('data', ()=>{
+        process.stdin.setRawMode(false);
+        console.log('Sent data');
+        resolve();
+    }))
+}
+
+
+
+io.on("connection", async (socket) => {
+    console.log(`new client: ${socket.client.id}`);
+    socket.on("disconnect", (reason) => {
+        console.log(`socket disconnected: ${socket.client.id} , reason: ${reason}`);
+    });
+    while (true) {
+        let flightCords = await getFlightCordsByInput();
+        socket.emit('sendCordsToClient',flightCords);
     }
 });
 
-
-
-
-
-function sendHeartbeat(){
-    setTimeout(sendHeartbeat, 8000);
-    io.sockets.emit('ping', { beat : 1 });
-}
-
-
-
-
-io.on("connection",  socket => {
-    console.log(`new client: ${socket.client.id}`);
-
-
-      socket.on('requestingCords', () => {
-        console.log('requesting data for:' + socket.client.id);
-        inputFlightCords(socket);
-    });
-
-    socket.on('disconnect', () => {
-        console.log(`socket disconnected:${socket.client.id}`);
-    })
-});
-
-
-
 server.listen(PORT, () => {
     console.log(`Listening on port ${PORT}`);
-})
+});
 
-
-const inputFlightCords = async (socket) => {
-
-    let altitude = prompt('altitude:');
-    let his = prompt('his:');
-    let adi = prompt('adi:');
-
-    let flightCords = new FlightCords(altitude, his, adi);
-    await pressAnyKey("Press any key", {
-        ctrlC: "reject"
-    }).then(() => {
-        console.log('Sending data');
-        socket.emit('cords', flightCords , {beat:1});
-    })
-        .catch(() => {
-            console.log('You pressed CTRL+C')
-        })
-}
