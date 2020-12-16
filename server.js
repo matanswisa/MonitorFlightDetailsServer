@@ -1,6 +1,5 @@
 const express = require('express');
 const prompt = require('prompt');
-const pressAnyKey = require('press-any-key');
 const FlightCords = require('./classes/FlightCords');
 const app = express();
 const http = require('http');
@@ -41,7 +40,11 @@ var schema = {
 
 prompt.start();
 
-const getFlightCordsByInput = (socket) => {
+/**
+ * Asking input from the command line.
+ * After the given input , the function will create a FlightCords instance and return it from promise resolve.
+ */
+const getFlightCordsByInput = () => {
     return new Promise((resolve, reject) => {
         prompt.get(schema, function (err, result) {
             if (err) {
@@ -55,18 +58,10 @@ const getFlightCordsByInput = (socket) => {
     })
 }
 
-const pressAnyKeyToContinue = async () => {
-    console.log('Press any key');
-    process.stdin.setRawMode(true);
-    return new Promise(resolve => process.stdin.once('data', ()=>{
-        process.stdin.setRawMode(false);
-        console.log('Sent data');
-        resolve();
-    }))
-}
-
-
-
+/**
+ * Waiting for client connection.
+ * Responsible to run the input function when a client is connected.
+ */
 io.on("connection", async (socket) => {
     console.log(`new client: ${socket.client.id}`);
     socket.on("disconnect", (reason) => {
@@ -77,6 +72,7 @@ io.on("connection", async (socket) => {
         socket.emit('sendCordsToClient',flightCords);
     }
 });
+
 
 server.listen(PORT, () => {
     console.log(`Listening on port ${PORT}`);
